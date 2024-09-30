@@ -22,12 +22,12 @@ engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 Base = automap_base()
 Base.prepare(autoload_with=engine)
 
-# Save references to each table
+# references to each table
 
 Measurement = Base.classes.measurement
 Station = Base.classes.station
 
-# Create our session (link) from Python to the DB
+#session (link) from Python to the DB
 
 session = Session(engine)
 
@@ -53,7 +53,8 @@ def home():
         ]
     })
 
-@app.route('/api/v1.0/precipitation') #DOUBLE CHECK THIS IS FINE
+#percipitaion route
+@app.route('/api/v1.0/precipitation') 
 def precipitation():
     recent_date_query = session.query(func.max(Measurement.date)).scalar()
     last_year_date = dt.datetime.strptime(recent_date_query, '%Y-%m-%d') - dt.timedelta(days=365)
@@ -64,7 +65,8 @@ def precipitation():
     precip_data = {date: prcp for date, prcp in results}
     return jsonify(precip_data)
 
-@app.route('/api/v1.0/stations') #this one was fine
+#stations route
+@app.route('/api/v1.0/stations') 
 def stations():
     results = session.query(Station.station).all()
     session.close()
@@ -72,17 +74,20 @@ def stations():
     stations_list = [station[0] for station in results]
     return jsonify(stations_list)
 
-@app.route('/api/v1.0/tobs') #this is good
+
+#tobs route
+@app.route('/api/v1.0/tobs') 
 def tobs():
     last_year_date = dt.date(2017,8,23) - dt.timedelta(days=365)
-    last_year_date = last_year_date.strftime('%Y-%m-%d')  # Format the date as a string
+    last_year_date = last_year_date.strftime('%Y-%m-%d')
     results = session.query(Measurement.tobs).filter(Measurement.station == 'USC00519281').filter(Measurement.date >= last_year_date).all()
     session.close()
     
     tobs_list = [tob[0] for tob in results]
     return jsonify(tobs_list)
 
-@app.route('/api/v1.0/<start>') #start is a url variable, start is suppose to be replaced by somthing ex. date, meausements #need to figure out the value to replace start, is suppose to be a date
+#start date route
+@app.route('/api/v1.0/<start>') 
 def start(start):   
     results = session.query(
         func.min(Measurement.tobs),
@@ -97,12 +102,13 @@ def start(start):
         'TMAX': results[0][2]
     })
 
-@app.route('/api/v1.0/<start>/<end>') #need to figure out was start and end is, probs a date
+#start and end date route
+@app.route('/api/v1.0/<start>/<end>') 
 def start_end(start, end):
-    # Select statement
+
     sel = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
 
-    # calculate TMIN, TAVG, TMAX with start and stop
+    
     start = dt.datetime.strptime(start, "%m%d%Y")
     end = dt.datetime.strptime(end, "%m%d%Y")
 
@@ -112,16 +118,8 @@ def start_end(start, end):
 
     session.close()
 
-    # Unravel results into a 1D array and convert to a list
     temps = list(np.ravel(results))
     return jsonify(temps=temps)
-
-   #dates = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
-    #results = session.query(*dates).filter(Measurement.date >= start).filter(Measurement.date <= end).all()
-    # session.close()
-    
-    # temps = list(np.ravel(results))
-    # return jsonify(temps = temps)
 
 if __name__ == '__main__':
     app.run()
